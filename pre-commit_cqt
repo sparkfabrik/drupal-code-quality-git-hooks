@@ -36,25 +36,29 @@ class CodeQualityTool extends Application
         $this->input = $input;
         $this->output = $output;
 
-        $output->writeln('<fg=white;options=bold;bg=red>Twinbit Code Quality Tool</fg=white;options=bold;bg=red>');
-        $output->writeln('<info>Fetching files</info>');
+        $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
+        $output->writeln('<comment>Fetching files</comment>');
         $files = $this->extractCommitedFiles();
 
-        $output->writeln('<info>Running PHPLint</info>');
+        $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
             throw new Exception('There are some PHP syntax errors!');
         }
 
-        $output->writeln('<info>Checking code style with PHPCS</info>');
+        $output->writeln('<comment>Checking code style with PHPCS</comment>');
         if (!$this->codeStyleDrupal($files)) {
             throw new Exception(sprintf('There are PHPCS coding standards violations!'));
         }
 
-        $output->writeln('<info>Checking code mess with PHPMD</info>');
+        $output->writeln('<comment>Checking code mess with PHPMD</comment>');
         if (!$this->phPmd($files)) {
             throw new Exception(sprintf('There are PHPMD violations!'));
         }
-        $output->writeln('<info>Good job dude!</info>');
+
+        $output->writeln('<comment>Checking code with PHP Copy/Paste Detector</comment>');
+        if (!$this->phpCpd($files)) {
+            throw new Exception(sprintf('There are PHP Copy/Paste Detector violations!'));
+        }
     }
 
     private function extractCommitedFiles()
@@ -99,7 +103,7 @@ class CodeQualityTool extends Application
         return $succeed;
     }
 
-    private function phPmd($files)
+    private function phPmd($files, $rules = 'unusedcode,design,naming')
     {
         $needle = $this->file_exts;
         $succeed = true;
@@ -110,21 +114,51 @@ class CodeQualityTool extends Application
             if (!in_array($ext, $this->file_exts)) {
               continue;
             }
-            $processBuilder = new ProcessBuilder(['bin/phpmd', $file, 'text', 'unusedcode']);
+            $processBuilder = new ProcessBuilder(['bin/phpmd', $file, 'text', $rules]);
             $processBuilder->setWorkingDirectory($rootPath);
             $process = $processBuilder->getProcess();
             $process->run();
 
             if (!$process->isSuccessful()) {
                 $this->output->writeln($file);
-                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
-                $this->output->writeln(sprintf('<info>%s</info>', trim($process->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getOutput())));
                 if ($succeed) {
                     $succeed = false;
                 }
             }
         }
 
+        return $succeed;
+    }
+
+    private function phpCpd($files) {
+        $needle = $this->file_exts;
+        $succeed = true;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            $ext = pathinfo($file, PATHINFO_EXTENSION);
+            if (!in_array($ext, $this->file_exts)) {
+              continue;
+            }
+            $dirToCheck = array(
+                $rootPath . '/sites/all/modules/features',
+                $rootPath . '/sites/all/modules/custom'
+            );
+            foreach ($dirToCheck as $dir) {
+                $processBuilder = new ProcessBuilder(['bin/phpcpd', $dir]);
+                $processBuilder->setWorkingDirectory($rootPath);
+                $process = $processBuilder->getProcess();
+                $process->run();
+                if (!$process->isSuccessful()) {
+                    $this->output->writeln($file);
+                    $this->output->writeln(sprintf('<error>%s</error>', trim($process->getOutput())));
+                    if ($succeed) {
+                        $succeed = false;
+                    }
+                }
+            }
+        }
         return $succeed;
     }
 
