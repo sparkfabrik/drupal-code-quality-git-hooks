@@ -12,6 +12,7 @@ class CodeQualityTool extends Application
 {
     private $output;
     private $input;
+    private $ignoredFiles = array();
 
     // Standard files extensions.
     private $file_exts =array(
@@ -29,17 +30,31 @@ class CodeQualityTool extends Application
     public function __construct()
     {
         parent::__construct('Code Quality Tool', '1.0.0');
+        $this->getIgnoredFiles();
+    }
+
+    private function getIgnoredFiles() {
+      $rootPath = realpath(__DIR__ . '/../../');
+      // Building an array of ignored files and folders.
+      $file_path = $rootPath . '/' . '.dcq_ignore';
+      $ignore = array();
+      if (file_exists($file_path)) {
+        $file = fopen($file_path, "r");
+        if ($file) {
+          while (!feof($file)) {
+            $this->ignoredFiles[] = trim(fgets($file));
+          }
+        }
+      }
     }
 
     public function doRun(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
         $this->output = $output;
-
         $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
         $output->writeln('<comment>Fetching files</comment>');
         $files = $this->extractCommitedFiles();
-
         $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
             throw new Exception('There are some PHP syntax errors!');
@@ -65,7 +80,6 @@ class CodeQualityTool extends Application
     {
         $output = array();
         $rc = 0;
-
         exec('git rev-parse --verify HEAD 2> /dev/null', $output, $rc);
 
         $against = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
@@ -74,7 +88,13 @@ class CodeQualityTool extends Application
         }
 
         exec("git diff-index --cached --name-status $against | egrep '^(A|M)' | awk '{print $2;}'", $output);
-
+        foreach ($output as $key => $file) {
+          if (file_exists($file) && !is_dir($file)) {
+            if (in_array($file, $this->ignoredFiles)) {
+              unset($output[$key]);
+            }
+          }
+        }
         return $output;
     }
 
