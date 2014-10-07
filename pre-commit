@@ -27,9 +27,9 @@ function find_all_files($dir = '.') {
     }
 
     // Traverse the sub directories.
-    foreach (find_all_files("$dir/$value") as $value) {
-      $result[] = $value;
-    }
+    #foreach (find_all_files("$dir/$value") as $value) {
+    #  $result[] = $value;
+    #}
   }
 
   return $result;
