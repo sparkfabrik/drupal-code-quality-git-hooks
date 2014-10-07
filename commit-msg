@@ -1,0 +1,25 @@
+#!/bin/bash
+regex="^(refs)[\ ]\#[0-9]+\:[\ ]((LP)\-)[0-9]+[\ ]\-[\ ]"
+var=`head -n 1 $1`
+
+function info {
+  echo >&2 $1
+}
+
+function debug {
+  debug=false
+  if $debug
+  then
+    echo >&2 $1
+  fi
+}
+
+if [[ "$var" =~ $regex ]]
+then
+  debug "Commit message OK"
+else
+  # Print information about acceptable format for commit message
+  info "Commit message must be in the form \"refs #[_ID_REDMINE_]: [LP]-[_ID_USER_STORY_] - message\""
+  info "If _ID_USER_STORY_ is not available just use 000"
+  exit 1
+fi
