@@ -1,0 +1,264 @@
+#!/usr/bin/php
+<?php
+
+require __DIR__ . '/../../vendor/autoload.php';
+
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\ProcessBuilder;
+use Symfony\Component\Console\Application;
+
+class CodeQualityTool extends Application
+{
+    private $output;
+    private $input;
+    private $ignoredFiles = array();
+    private $tmp_dir;
+    public $old_rev, $new_rev, $ref_name;
+
+    // Standard files extensions.
+    private $file_exts =array(
+      'engine',
+      'php',
+      'module',
+      'inc',
+      'install',
+      'profile',
+      'test',
+      'theme',
+      'txt',
+    );
+
+    public function __construct()
+    {
+        parent::__construct('Code Quality Tool', '1.0.0');
+        // Create temprary directory.
+        $tmp_dir = sys_get_temp_dir() . "/" . uniqid('drupal-cqt-remote');
+        if (!mkdir($tmp_dir)) {
+          throw new Exception('pre-receive hooks cannot be executed');
+        }
+        $this->tmp_dir = $tmp_dir;
+        $temp_dir = $this->tmp_dir;
+
+        // Read standard input arguments.
+        $std_args = explode(' ', trim(fgets(STDIN)));
+        $this->old_rev = $std_args[0];
+        $this->new_rev = $std_args[1];
+        $this->ref_name = $std_args[2];
+
+        // Get ignored files.
+        $this->getIgnoredFiles();
+    }
+
+    public function doRun(InputInterface $input, OutputInterface $output)
+    {
+        $this->input = $input;
+        $this->output = $output;
+        $files = $this->extractCommitedFiles();
+        $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
+        $output->writeln('<comment>Running PHPLint</comment>');
+        if (!$this->phpLint($files)) {
+            throw new Exception('There are some PHP syntax errors!');
+        }
+
+        $output->writeln('<comment>Checking code style with PHPCS</comment>');
+        if (!$this->codeStyleDrupal($files)) {
+            throw new Exception(sprintf('There are PHPCS coding standards violations!'));
+        }
+
+        $output->writeln('<comment>Checking code mess with PHPMD</comment>');
+        if (!$this->phPmd($files)) {
+            throw new Exception(sprintf('There are PHPMD violations!'));
+        }
+
+        $output->writeln('<comment>Checking code with PHP Copy/Paste Detector</comment>');
+        if (!$this->phpCpd($files)) {
+            throw new Exception(sprintf('There are PHP Copy/Paste Detector violations!'));
+        }
+    }
+
+    private function getIgnoredFiles() {
+      $tmp_dir = $this->tmp_dir;
+      $rootPath = realpath(__DIR__ . '/..');
+      $ignore = '.dcq_ignore';
+      $new_rev = $this->new_rev;
+
+      // Get file from git.
+      exec("git show ${new_rev}:${file} 1>\"$tmp_dir/$ignore\"");
+
+      // Building an array of ignored files and folders.
+      $file_path = $tmp_dir . '/' . '.dcq_ignore';
+      if (file_exists($file_path)) {
+        $file = fopen($file_path, "r");
+        if ($file) {
+          while (!feof($file)) {
+            $this->ignoredFiles[] = trim(fgets($file));
+          }
+        }
+      }
+
+      // Read custom ignore files.
+      $rootPath = realpath(__DIR__ . '/..');
+      $custom_ignore_file = $rootPath . '/' . ".dcq_ignore";
+      if (file_exists($custom_ignore_file)) {
+        $file = fopen($custom_ignore_file, "r");
+        if ($file) {
+          while (!feof($file)) {
+            $this->ignoredFiles[] = trim(fgets($file));
+          }
+        }
+      }
+    }
+
+    private function extractCommitedFiles()
+    {
+        // Read standard input arguments.
+        $std_args = explode(' ', trim(fgets(STDIN)));
+        $temp_dir = $this->tmp_dir;
+
+        // Revs.
+        $old_rev = $this->old_rev;
+        $new_rev = $this->new_rev;
+        $ref_name = $this->ref_name;
+
+        $against = '0000000000000000000000000000000000000000';
+        if ($old_rev == $against) {
+            $old_rev = 'HEAD';
+        }
+
+        // Get files.
+        exec("git diff-tree --name-only -r {$old_rev}..{$new_rev}", $output);
+        $dests_files = array();
+        foreach ($output as $key => $file) {
+          $path = pathinfo($file);
+          if (isset($path['dirname'])
+            && (in_array($path['extension'], $this->file_exts))
+            && (!in_array($file, $this->ignoredFiles))) {
+            // Crate directory structure
+            mkdir($temp_dir . '/' . $path['dirname'], 0777, TRUE);
+            // Skip deleted files.
+            exec("git show ${new_rev}:${file} 2>/dev/null", $diff);
+            if ($diff) {
+              exec("git show ${new_rev}:${file} 1>\"$temp_dir/$file\"");
+              if (file_exists("$temp_dir/$file")) {
+                $dests_files[] = "$temp_dir/$file";
+              }
+            }
+          }
+        }
+        return $dests_files;
+    }
+
+    private function phpLint($files)
+    {
+        $succeed = true;
+        foreach ($files as $file) {
+            $ext = pathinfo($file, PATHINFO_EXTENSION);
+            if (!in_array($ext, $this->file_exts)) {
+              continue;
+            }
+            $processBuilder = new ProcessBuilder(array('php', '-l', $file));
+            $process = $processBuilder->getProcess();
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                $this->output->writeln($file);
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPmd($files, $rules = 'unusedcode,design,naming')
+    {
+        $needle = $this->file_exts;
+        $succeed = true;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            $ext = pathinfo($file, PATHINFO_EXTENSION);
+            if (!in_array($ext, $this->file_exts)) {
+              continue;
+            }
+            $processBuilder = new ProcessBuilder(['bin/phpmd', $file, 'text', $rules]);
+            $processBuilder->setWorkingDirectory($rootPath);
+            $process = $processBuilder->getProcess();
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                $this->output->writeln($file);
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getOutput())));
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phpCpd($files) {
+        $needle = $this->file_exts;
+        $succeed = true;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            $ext = pathinfo($file, PATHINFO_EXTENSION);
+            if (!in_array($ext, $this->file_exts)) {
+              continue;
+            }
+            $dirToCheck = array(
+                $rootPath . '/sites/all/modules/features',
+                $rootPath . '/sites/all/modules/custom'
+            );
+            foreach ($dirToCheck as $dir) {
+                $processBuilder = new ProcessBuilder(['bin/phpcpd', $dir]);
+                $processBuilder->setWorkingDirectory($rootPath);
+                $process = $processBuilder->getProcess();
+                $process->run();
+                if (!$process->isSuccessful()) {
+                    $this->output->writeln($file);
+                    $this->output->writeln(sprintf('<error>%s</error>', trim($process->getOutput())));
+                    if ($succeed) {
+                        $succeed = false;
+                    }
+                }
+            }
+        }
+        return $succeed;
+    }
+
+
+    private function codeStyleDrupal(array $files)
+    {
+        $succeed = true;
+        $needle = $this->file_exts;
+
+        foreach ($files as $file) {
+            $ext = pathinfo($file, PATHINFO_EXTENSION);
+            if (!in_array($ext, $this->file_exts)) {
+              continue;
+            }
+            $processBuilder = new ProcessBuilder(array('bin/phpcs', '--standard=Drupal', $file));
+            $processBuilder->setWorkingDirectory(__DIR__ . '/../../');
+            $phpCsFixer = $processBuilder->getProcess();
+            $phpCsFixer->run();
+            if (!$phpCsFixer->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+        return $succeed;
+    }
+}
+
+$console = new CodeQualityTool();
+$console->run();
