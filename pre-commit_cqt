@@ -52,9 +52,11 @@ class CodeQualityTool extends Application
     {
         $this->input = $input;
         $this->output = $output;
-        $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
-        $output->writeln('<comment>Fetching files</comment>');
         $files = $this->extractCommitedFiles();
+        if (count($files) === 1) {
+          return;
+        }
+        $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
         $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
             throw new Exception('There are some PHP syntax errors!');

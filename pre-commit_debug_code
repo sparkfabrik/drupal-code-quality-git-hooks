@@ -39,8 +39,8 @@ else
 fi
 rm -f $TMP_FOO_FILE
 
-echo -e "\\033[1;33m""Forbidden keywords checker - pre-commit hook" "$TEXT_DEFAULT"
-echo
+#echo -e "\\033[1;33m""Forbidden keywords checker - pre-commit hook" "$TEXT_DEFAULT"
+#echo
 
 for FILE in $FILES; do
      if [[ $FILE =~ $EXTENSIONS_REGEX ]]; then
@@ -69,7 +69,4 @@ if [ "$ERRORS_BUFFER" != "" ]; then
     echo -e "$TEXT_INFO" "If you are sure you want to commit those files, use --no-verify option" "$TEXT_DEFAULT"
 
     exit 1
-else
-    echo -e "$TEXT_INFO" "All files are clean." "$TEXT_DEFAULT"
-    exit 0
 fi
