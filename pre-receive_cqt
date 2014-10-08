@@ -15,6 +15,7 @@ class CodeQualityTool extends Application
     private $ignoredFiles = array();
     private $tmp_dir;
     public $old_rev, $new_rev, $ref_name;
+    private $workingDirectory;
 
     // Standard files extensions.
     private $file_exts =array(
@@ -29,7 +30,7 @@ class CodeQualityTool extends Application
       'txt',
     );
 
-    public function __construct()
+    public function __construct($config = array())
     {
         parent::__construct('Code Quality Tool', '1.0.0');
         // Create temprary directory.
@@ -48,6 +49,10 @@ class CodeQualityTool extends Application
 
         // Get ignored files.
         $this->getIgnoredFiles();
+        if (isset($config['working_directory'])) {
+          $this->workingDirectory = $config['working_directory'];
+        }
+
     }
 
     public function doRun(InputInterface $input, OutputInterface $output)
@@ -175,7 +180,7 @@ class CodeQualityTool extends Application
               continue;
             }
             $processBuilder = new ProcessBuilder(array('bin/phpcs', '--standard=Drupal', $file));
-            $processBuilder->setWorkingDirectory(__DIR__ . '/../../');
+            $processBuilder->setWorkingDirectory($this->workingDirectory);
             $phpCsFixer = $processBuilder->getProcess();
             $phpCsFixer->run();
             if (!$phpCsFixer->isSuccessful()) {
@@ -190,5 +195,5 @@ class CodeQualityTool extends Application
     }
 }
 
-$console = new CodeQualityTool();
+$console = new CodeQualityTool(array('working_directory' => '/home/git'));
 $console->run();
