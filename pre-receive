@@ -42,7 +42,7 @@ $files = find_all_files($git_dir . '/hooks');
 
 // Search for correctly named files and execute them.
 foreach ($files as $file) {
-  if (substr(basename($file), 0, 11) == 'pre-receive_') {
+  if (substr(basename($file), 0, 12) == 'pre-receive_') {
     if (is_executable($file)) {
       system($file, $ret);
       if ($ret != 0) {

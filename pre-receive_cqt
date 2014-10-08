@@ -195,5 +195,5 @@ class CodeQualityTool extends Application
     }
 }
 
-$console = new CodeQualityTool(array('working_directory' => '/home/git'));
+$console = new CodeQualityTool(array('working_directory' => '/home/git/drupal-code-quality-git-hooks'));
 $console->run();
