@@ -60,6 +60,10 @@ class CodeQualityTool extends Application
         $this->input = $input;
         $this->output = $output;
         $files = $this->extractCommitedFiles();
+        // Nothing to check.
+        if (!count($files)) {
+            return;
+        }
         $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
         $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
@@ -118,7 +122,9 @@ class CodeQualityTool extends Application
 
         $against = '0000000000000000000000000000000000000000';
         if ($old_rev == $against) {
-            $old_rev = 'HEAD';
+            // This is a new branch, skip checking.
+            //$old_rev = 'HEAD';
+            return array();
         }
 
         // Get files.
