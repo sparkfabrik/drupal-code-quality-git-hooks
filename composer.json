@@ -1,0 +1,12 @@
+{
+    "require": {
+        "squizlabs/php_codesniffer": "1.5.*",
+        "phpmd/phpmd": "1.5.*",
+        "drupal/coder": "7.2.*",
+        "sebastian/phpcpd": "*"
+    },
+    "config": {
+        "bin-dir": "bin/"
+    },
+    "minimum-stability": "beta"
+}
