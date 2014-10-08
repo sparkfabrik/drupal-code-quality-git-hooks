@@ -79,7 +79,7 @@ class CodeQualityTool extends Application
       $new_rev = $this->new_rev;
 
       // Get file from git.
-      exec("git show ${new_rev}:${file} 1>\"$tmp_dir/$ignore\"");
+      exec("git show ${new_rev}:${ignore} 1>\"$tmp_dir/$ignore\"");
 
       // Building an array of ignored files and folders.
       $file_path = $tmp_dir . '/' . '.dcq_ignore';
