@@ -154,8 +154,12 @@ class CodeQualityTool extends Application
     {
         $succeed = true;
         foreach ($files as $file) {
-            $ext = pathinfo($file, PATHINFO_EXTENSION);
-            if (!in_array($ext, $this->file_exts)) {
+            $pathinfo = pathinfo($file);
+            // Exclude features auto-generated files.
+            if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
+              continue;
+            }
+            if (!in_array($pathinfo['extension'], $this->file_exts)) {
               continue;
             }
             $processBuilder = new ProcessBuilder(array('php', '-l', $file));
@@ -179,14 +183,17 @@ class CodeQualityTool extends Application
     {
         $succeed = true;
         $needle = $this->file_exts;
-
         foreach ($files as $file) {
-            $ext = pathinfo($file, PATHINFO_EXTENSION);
-            if (!in_array($ext, $this->file_exts)) {
+            $pathinfo = pathinfo($file);
+            // Exclude features auto-generated files.
+            if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
+              continue;
+            }
+            if (!in_array($pathinfo['extension'], $this->file_exts)) {
               continue;
             }
             $processBuilder = new ProcessBuilder(array('bin/phpcs', '--standard=Drupal', $file));
-            $processBuilder->setWorkingDirectory($this->workingDirectory);
+            $processBuilder->setWorkingDirectory(__DIR__ . '/../../');
             $phpCsFixer = $processBuilder->getProcess();
             $phpCsFixer->run();
             if (!$phpCsFixer->isSuccessful()) {
