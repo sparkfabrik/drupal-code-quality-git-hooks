@@ -66,11 +66,10 @@ class CodeQualityTool extends Application
         if (!$this->codeStyleDrupal($files)) {
             throw new Exception(sprintf('There are PHPCS coding standards violations!'));
         }
-
-        $output->writeln('<comment>Checking code mess with PHPMD</comment>');
-        if (!$this->phPmd($files)) {
-            throw new Exception(sprintf('There are PHPMD violations!'));
-        }
+        #$output->writeln('<comment>Checking code mess with PHPMD</comment>');
+        #if (!$this->phPmd($files)) {
+        #    throw new Exception(sprintf('There are PHPMD violations!'));
+        #}
     }
 
     private function extractCommitedFiles()
@@ -100,6 +99,9 @@ class CodeQualityTool extends Application
         $succeed = true;
         foreach ($files as $file) {
             $pathinfo = pathinfo($file);
+            if (!isset($pathinfo['extension'])) {
+                continue;
+            }
             // Exclude features auto-generated files.
             if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
               continue;
@@ -132,6 +134,9 @@ class CodeQualityTool extends Application
 
         foreach ($files as $file) {
             $pathinfo = pathinfo($file);
+            if (!isset($pathinfo['extension'])) {
+                continue;
+            }
             // Exclude features auto-generated files.
             if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
               continue;
@@ -163,6 +168,9 @@ class CodeQualityTool extends Application
 
         foreach ($files as $file) {
             $pathinfo = pathinfo($file);
+            if (!isset($pathinfo['extension'])) {
+                continue;
+            }
             // Exclude features auto-generated files.
             if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
               continue;
