@@ -17,7 +17,7 @@ function find_all_files($dir = '.') {
 
   // Ignore . and .. dirs.
   foreach ($root as $value) {
-    if ($value === '.' || $value === '..' || $values === '.git') {
+    if ($value === '.' || $value === '..' || $value === '.git') {
       continue;
     }
     // Found a file? Store it.
