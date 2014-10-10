@@ -206,6 +206,9 @@ class CodeQualityTool extends Application
         $needle = $this->file_exts;
         foreach ($files as $file) {
             $pathinfo = pathinfo($file);
+            if (!isset($pathinfo['extension'])) {
+                continue;
+            }
             // Exclude features auto-generated files.
             if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
               continue;
