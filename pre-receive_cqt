@@ -136,7 +136,7 @@ class CodeQualityTool extends Application
             && (in_array($path['extension'], $this->file_exts))
             && (!in_array($file, $this->ignoredFiles))) {
             // Crate directory structure
-            mkdir($temp_dir . '/' . $path['dirname'], 0777, TRUE);
+            @mkdir($temp_dir . '/' . $path['dirname'], 0777, TRUE);
             // Skip deleted files.
             exec("git show ${new_rev}:${file} 2>/dev/null", $diff);
             if ($diff) {
