@@ -29,7 +29,7 @@ class CodeQualityTool extends Application
 
     public function __construct()
     {
-        parent::__construct('Code Quality Tool', '1.0.0');
+        parent::__construct('Sparkfabrik Code Quality Tool', '1.0.0');
         $this->getIgnoredFiles();
     }
 
