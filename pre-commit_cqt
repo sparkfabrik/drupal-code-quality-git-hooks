@@ -56,7 +56,7 @@ class CodeQualityTool extends Application
         if (count($files) === 1) {
           return;
         }
-        $output->writeln('<info>Twinbit - Drupal quality assurance toolchain</info>');
+        $output->writeln('<info>Sparkfabrik - Drupal quality assurance toolchain</info>');
         $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
             throw new Exception('There are some PHP syntax errors!');
