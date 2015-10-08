@@ -56,13 +56,13 @@ class CodeQualityTool extends Application
         if (count($files) === 1) {
           return;
         }
-        $output->writeln('<info>Sparkfabrik - Drupal quality assurance toolchain</info>');
-        $output->writeln('<comment>Running PHPLint</comment>');
+        # $output->writeln('<info>Sparkfabrik - Drupal quality assurance toolchain</info>');
+        # $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
             throw new Exception('There are some PHP syntax errors!');
         }
 
-        $output->writeln('<comment>Checking code style with PHPCS</comment>');
+        # $output->writeln('<comment>Checking code style with PHPCS</comment>');
         if (!$this->codeStyleDrupal($files)) {
             throw new Exception(sprintf('There are PHPCS coding standards violations!'));
         }
