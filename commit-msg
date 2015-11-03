@@ -1,5 +1,5 @@
 #!/bin/bash
-regex="^(refs)[\ ]\#[0-9]+\:[\ ]((EXT|EE|EG)\-)[0-9]+[\ ]\-[\ ]"
+regex="^(refs)[\ ]\#[0-9]+\:[\ ]((EXT|EE|EG|EF)\-)[0-9]+[\ ]\-[\ ]"
 var=`head -n 1 $1`
 
 function info {
@@ -19,7 +19,7 @@ then
   debug "Commit message OK"
 else
   # Print information about acceptable format for commit message
-  info "Commit message must be in the form \"refs #[_ID_REDMINE_]: [EXT|EE|EG]-[_ID_USER_STORY_] - message\""
-  info "If '[EXT|EE|EG]_ID_USER_STORY_' is not available just use '[EXT|EE|EG]-000'"
+  info "Commit message must be in the form \"refs #[_ID_REDMINE_]: [EXT|EE|EG|EF]-[_ID_USER_STORY_] - message\""
+  info "If '[EXT|EE|EG|EF]_ID_USER_STORY_' is not available just use '[EXT|EE|EG|EF]-000'"
   exit 1
 fi
