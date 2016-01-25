@@ -57,14 +57,16 @@ class CodeQualityTool extends Application
           return;
         }
         # $output->writeln('<info>Sparkfabrik - Drupal quality assurance toolchain</info>');
-        # $output->writeln('<comment>Running PHPLint</comment>');
+        # $output->writeln('<comment>Running PHPLint</comment>');
         if (!$this->phpLint($files)) {
             throw new Exception('There are some PHP syntax errors!');
         }
-
-        # $output->writeln('<comment>Checking code style with PHPCS</comment>');
+        # $output->writeln('<comment>Checking code style with PHPCS</comment>');
         if (!$this->codeStyleDrupal($files)) {
-            throw new Exception(sprintf('There are PHPCS coding standards violations!'));
+            throw new Exception(sprintf('There are Drupal standards violations!'));
+        }
+        if (!$this->codeStyleDrupalPractice($files)) {
+            throw new Exception(sprintf('There are DrupalPractice standards violations!'));
         }
         #$output->writeln('<comment>Checking code mess with PHPMD</comment>');
         #if (!$this->phPmd($files)) {
@@ -216,13 +218,43 @@ class CodeQualityTool extends Application
             if (!in_array($pathinfo['extension'], $this->file_exts)) {
               continue;
             }
-            $processBuilder = new ProcessBuilder(array('bin/phpcs', '--standard=Drupal', $file));
+            $processBuilder = new ProcessBuilder(array('bin/phpcs', '--colors', '--standard=Drupal', $file));
             $processBuilder->setWorkingDirectory(__DIR__ . '/../../');
             $phpCsFixer = $processBuilder->getProcess();
             $phpCsFixer->run();
             if (!$phpCsFixer->isSuccessful()) {
                 $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
 
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+        return $succeed;
+    }
+
+    private function codeStyleDrupalPractice(array $files)
+    {
+        $succeed = true;
+        $needle = $this->file_exts;
+        foreach ($files as $file) {
+            $pathinfo = pathinfo($file);
+            if (!isset($pathinfo['extension'])) {
+                continue;
+            }
+            // Exclude features auto-generated files.
+            if (strpos($pathinfo['filename'], '.features.') !== FALSE) {
+              continue;
+            }
+            if (!in_array($pathinfo['extension'], $this->file_exts)) {
+              continue;
+            }
+            $processBuilder = new ProcessBuilder(array('bin/phpcs', '--colors', '--standard=DrupalPractice', $file));
+            $processBuilder->setWorkingDirectory(__DIR__ . '/../../');
+            $phpCsFixer = $processBuilder->getProcess();
+            $phpCsFixer->run();
+            if (!$phpCsFixer->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
                 if ($succeed) {
                     $succeed = false;
                 }
